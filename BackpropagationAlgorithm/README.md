@@ -23,47 +23,103 @@
 
     3. with hyperparameter setting, result with different layer 
 
-    (50, 25, 10, 5):>Epoch=10, lrate=0.010, error=139.89004
->   Epoch=20, lrate=0.010, error=139.99416
->   Epoch=30, lrate=0.010, error=140.00715
->   Epoch=40, lrate=0.010, error=140.00833
->   Epoch=50, lrate=0.010, error=140.00852
->   Epoch=60, lrate=0.010, error=140.00862
+    (50, 25, 10, 5):Starting training with rate=0.02, epochs=400...
+>Epoch=10, lrate=0.020, error=139.58523
+>Epoch=20, lrate=0.020, error=139.59937
+>Epoch=30, lrate=0.020, error=139.60297
+>Epoch=40, lrate=0.020, error=139.60652
+>Epoch=50, lrate=0.020, error=139.61007
+>Epoch=60, lrate=0.020, error=139.61362
+>Epoch=70, lrate=0.020, error=139.61717
+>Epoch=80, lrate=0.020, error=139.62072
+>Epoch=90, lrate=0.020, error=139.62427
+>Epoch=100, lrate=0.020, error=139.62782
+>Epoch=110, lrate=0.020, error=139.63136
+>Epoch=120, lrate=0.020, error=139.63491
+>Epoch=130, lrate=0.020, error=139.63844
+>Epoch=140, lrate=0.020, error=139.64198
+>Epoch=150, lrate=0.020, error=139.64550
+>Epoch=160, lrate=0.020, error=139.64901
+>Epoch=170, lrate=0.020, error=139.65250
+>Epoch=180, lrate=0.020, error=139.65598
+>Epoch=190, lrate=0.020, error=139.65943
+>Epoch=200, lrate=0.020, error=139.66287
+>Epoch=210, lrate=0.020, error=139.66628
+>Epoch=220, lrate=0.020, error=139.66966
+>Epoch=230, lrate=0.020, error=139.67301
+>Epoch=240, lrate=0.020, error=139.67633
+>Epoch=250, lrate=0.020, error=139.67962
+>Epoch=260, lrate=0.020, error=139.68287
+>Epoch=270, lrate=0.020, error=139.68608
+>Epoch=280, lrate=0.020, error=139.68925
+>Epoch=290, lrate=0.020, error=139.69238
+>Epoch=300, lrate=0.020, error=139.69547
+>Epoch=310, lrate=0.020, error=139.69852
+>Epoch=320, lrate=0.020, error=139.70152
+>Epoch=330, lrate=0.020, error=139.70449
+>Epoch=340, lrate=0.020, error=139.70741
+>Epoch=350, lrate=0.020, error=139.71029
+>Epoch=360, lrate=0.020, error=139.71312
+>Epoch=370, lrate=0.020, error=139.71592
+>Epoch=380, lrate=0.020, error=139.71868
+>Epoch=390, lrate=0.020, error=139.72140
+>Epoch=400, lrate=0.020, error=139.72409
+
+--- Testing Predictions ---
+
+Classification Complete. Total Accuracy: 33.33%
 
     (50, 25, 10)
-    Network initialized with 4 layers (Input:7, Hidden:(50, 25, 10), Output:3)
-    Starting training with rate=0.02, epochs=200...
-    Epoch=10, lrate=0.020, error=138.78218
-    Epoch=20, lrate=0.020, error=138.79871
-    Epoch=30, lrate=0.020, error=138.81180
-    Epoch=40, lrate=0.020, error=138.82419
+    Starting training with rate=0.02, epochs=400...
+>Epoch=10, lrate=0.020, error=139.06289
+>Epoch=20, lrate=0.020, error=139.07589
+>Epoch=30, lrate=0.020, error=139.08290
+>Epoch=40, lrate=0.020, error=139.08901
+>Epoch=50, lrate=0.020, error=139.09430
+>Epoch=60, lrate=0.020, error=139.09888
+>Epoch=70, lrate=0.020, error=139.10287
+>Epoch=80, lrate=0.020, error=139.10644
+>Epoch=90, lrate=0.020, error=139.10977
+>Epoch=100, lrate=0.020, error=139.11305
+>Epoch=110, lrate=0.020, error=139.11651
+>Epoch=120, lrate=0.020, error=139.12041
+>Epoch=130, lrate=0.020, error=139.12502
+>Epoch=140, lrate=0.020, error=139.13063
+>Epoch=150, lrate=0.020, error=139.13755
+>Epoch=160, lrate=0.020, error=139.14606
+>Epoch=170, lrate=0.020, error=139.15644
+>Epoch=180, lrate=0.020, error=139.16895
+>Epoch=190, lrate=0.020, error=139.18376
+>Epoch=200, lrate=0.020, error=139.20100
+>Epoch=210, lrate=0.020, error=139.22071
+>Epoch=220, lrate=0.020, error=139.24282
+>Epoch=230, lrate=0.020, error=139.26718
+>Epoch=240, lrate=0.020, error=139.29353
+>Epoch=250, lrate=0.020, error=139.32149
+>Epoch=260, lrate=0.020, error=139.35065
+>Epoch=270, lrate=0.020, error=139.38050
+>Epoch=280, lrate=0.020, error=139.41052
+>Epoch=290, lrate=0.020, error=139.44018
+>Epoch=300, lrate=0.020, error=139.46897
+>Epoch=310, lrate=0.020, error=139.49642
+>Epoch=320, lrate=0.020, error=139.52214
+>Epoch=330, lrate=0.020, error=139.54582
+>Epoch=340, lrate=0.020, error=139.56725
+>Epoch=350, lrate=0.020, error=139.58631
+>Epoch=360, lrate=0.020, error=139.60297
+>Epoch=370, lrate=0.020, error=139.61727
+>Epoch=380, lrate=0.020, error=139.62936
+>Epoch=390, lrate=0.020, error=139.63941
+>Epoch=400, lrate=0.020, error=139.64764
 
-    (5,)
-    >Epoch=10, lrate=0.010, error=138.55466
->   Epoch=20, lrate=0.010, error=137.00640
->   Epoch=30, lrate=0.010, error=134.63245
->   Epoch=40, lrate=0.010, error=131.15649
->   Epoch=50, lrate=0.010, error=126.35278
->   Epoch=60, lrate=0.010, error=120.20582
->   Epoch=70, lrate=0.010, error=113.08263
->   Epoch=80, lrate=0.010, error=105.74218
->   Epoch=90, lrate=0.010, error=98.99337
->   Epoch=100, lrate=0.010, error=93.29678
->   Epoch=110, lrate=0.010, error=88.70422
-    Epoch=120, lrate=0.010, error=85.04330
->   Epoch=130, lrate=0.010, error=82.08923
->   Epoch=140, lrate=0.010, error=79.64339
->   Epoch=150, lrate=0.010, error=77.55123
->   Epoch=160, lrate=0.010, error=75.69715
->   Epoch=170, lrate=0.010, error=73.99485
->   Epoch=180, lrate=0.010, error=72.37922
->   Epoch=190, lrate=0.010, error=70.80074
->   Epoch=200, lrate=0.010, error=69.22213
+--- Testing Predictions ---
+
+Classification Complete. Total Accuracy: 33.33%
+
+
 
     (5,) has the best performance , to improve its performance, 
-    update the Irate and increase the epoch:
-    l_rate = 0.02
-    n_epoch = 400
+    
 
     result came out:
     Network initialized with 2 layers (Input:7, Hidden:(5,), Output:3)
