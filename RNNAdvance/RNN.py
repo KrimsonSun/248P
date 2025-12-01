@@ -1,200 +1,159 @@
-# advanced_rnn_jena_climate.py
-# Objective: Implement two advanced RNN models (Recurrent Dropout GRU and Bidirectional GRU)
-#            for the Jena climate time series forecasting problem.
+# simple_rnn_lstm_imdb_classifiers.py
+# Objective: Implement two RNN classifiers for the IMDB sentiment classification task:
+# 1. SimpleRNN Model
+# 2. LSTM Model
+# This script aligns with the methodology described in Section 6.2 of the textbook.
 
-import os
 import numpy as np
 import matplotlib.pyplot as plt
+import tensorflow as tf
+from tensorflow.keras.datasets import imdb
+from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.models import Sequential
-from tensorflow.keras import layers
+from tensorflow.keras.layers import Embedding, SimpleRNN, LSTM, Dense
 from tensorflow.keras.optimizers import RMSprop
+from tensorflow.keras.callbacks import History
 
-# --- Configuration (MUST BE MODIFIED by the user) ---
-# NOTE: Please change this path to where you stored the 'jena_climate_2009_2016.csv' file.
-DATA_DIR = './data/' 
-FNAME = os.path.join(DATA_DIR, 'jena_climate_2009_2016.csv')
-
-# --- Time Series Parameters ---
-LOOKBACK = 1440  # Observations go back 10 days (1440 timesteps)
-STEP = 6         # Sample at one data point per hour (every 6 timesteps)
-DELAY = 144      # Target is 24 hours (144 timesteps) in the future
+# --- 1. Configuration Parameters ---
+# Use smaller parameters for faster training and demonstration, sufficient to show differences
+MAX_FEATURES = 10000  # Vocabulary size (top 10,000 most frequent words)
+MAX_LEN = 100         # Truncate/pad sequences to 100 words
+EMBEDDING_DIM = 32    # Dimensionality of the embedding vector
+RNN_UNITS = 32        # Output dimensionality of the RNN layer
 BATCH_SIZE = 128
-TRAIN_SAMPLES = 200000  # First 200k timesteps for training
-VAL_SAMPLES_MAX = 300000 # Next 100k timesteps for validation
-TEST_SAMPLES_MIN = 300001 # Remainder for testing
+EPOCHS = 10           # Increased epochs to observe convergence
+LEARNING_RATE = 1e-4
 
-# --- Model Parameters ---
-GRU_UNITS = 32
-DROPOUT_RATE = 0.2
-RECURRENT_DROPOUT_RATE = 0.2
-EPOCHS = 5 # Increased epochs for models with dropout
+print("--- Configuration Loaded ---")
+print(f"MAX_FEATURES: {MAX_FEATURES}, MAX_LEN: {MAX_LEN}, RNN_UNITS: {RNN_UNITS}")
 
-# --- 1. Data Loading and Normalization ---
+# --- 2. Data Loading and Preprocessing ---
+print('\nLoading IMDB data...')
+# Load data, limiting to MAX_FEATURES (top 10000 words)
+(x_train, y_train), (x_test, y_test) = imdb.load_data(num_words=MAX_FEATURES)
 
-# Load raw data
-try:
-    with open(FNAME, encoding='utf-8') as f:
-        data = f.read()
-except FileNotFoundError:
-    print(f"ERROR: Data file not found at {FNAME}. Please update the DATA_DIR variable.")
-    exit()
+print(f'{len(x_train)} train sequences')
+print(f'{len(x_test)} test sequences')
 
-lines = data.split('\n')
-header = lines[0].split(',')[1:] # Skip 'Date Time'
-lines = lines[1:]
+print(f'Pad sequences (samples x time) to maxlen={MAX_LEN}...')
+# Pad the sequences to the consistent length (MAX_LEN)
+# 'post' padding is common for RNNs, though 'pre' is often default.
+x_train = pad_sequences(x_train, maxlen=MAX_LEN)
+x_test = pad_sequences(x_test, maxlen=MAX_LEN)
 
-print(f"Found {len(lines)} data points.")
-print(f"Features: {header}")
+print('x_train shape:', x_train.shape)
+print('x_test shape:', x_test.shape)
 
-# Convert to Numpy array
-float_data = np.zeros((len(lines), len(header)))
-for i, line in enumerate(lines):
-    # Skip the timestamp (index 0)
-    values = [float(x.strip('"')) for x in line.split(',')[1:]]
-    float_data[i, :] = values
 
-# Normalize the data (using mean and std dev of the training set)
-mean = float_data[:TRAIN_SAMPLES].mean(axis=0)
-float_data -= mean
-std = float_data[:TRAIN_SAMPLES].std(axis=0)
-float_data /= std
-
-print(f"Data shape after normalization: {float_data.shape}")
-
-# --- 2. Data Generator Definition ---
-
-def generator(data, lookback, delay, min_index, max_index,
-              shuffle=False, batch_size=128, step=6):
-    """
-    Yields batches of samples (input sequences) and targets (future temperature).
-    """
-    if max_index is None:
-        max_index = len(data) - delay - 1
-    
-    # Start index for drawing samples
-    i = min_index + lookback
-    
-    while 1:
-        if shuffle:
-            # Randomly select rows for shuffling
-            rows = np.random.randint(min_index + lookback, max_index, size=batch_size)
-        else:
-            # Draw rows in chronological order
-            if i + batch_size >= max_index:
-                i = min_index + lookback
-            rows = np.arange(i, min(i + batch_size, max_index))
-            i += len(rows)
-
-        samples = np.zeros((len(rows), lookback // step, data.shape[-1]))
-        targets = np.zeros((len(rows),))
-        
-        for j, row in enumerate(rows):
-            # Indices for the input sequence (past data)
-            indices = range(rows[j] - lookback, rows[j], step)
-            samples[j] = data[indices]
-            
-            # Target is the temperature (index 1) at time: row[j] + delay
-            targets[j] = data[rows[j] + delay][1] 
-            
-        yield samples, targets
-
-# --- 3. Instantiate Generators and Steps ---
-train_gen = generator(float_data,
-                      lookback=LOOKBACK,
-                      delay=DELAY,
-                      min_index=0,
-                      max_index=TRAIN_SAMPLES,
-                      shuffle=True,
-                      step=STEP, 
-                      batch_size=BATCH_SIZE)
-
-val_gen = generator(float_data,
-                    lookback=LOOKBACK,
-                    delay=DELAY,
-                    min_index=TRAIN_SAMPLES + 1,
-                    max_index=VAL_SAMPLES_MAX,
-                    step=STEP,
-                    batch_size=BATCH_SIZE)
-
-# Calculate steps needed to cover the validation set
-val_steps = (VAL_SAMPLES_MAX - (TRAIN_SAMPLES + 1) - LOOKBACK) // BATCH_SIZE
-
-# --- 4. Plotting Function ---
-def plot_history(history, model_name):
-    """Plots the training and validation MAE loss."""
+# --- Plotting Utility ---
+def plot_history(history: History, model_name: str):
+    """Plots the training and validation accuracy and loss."""
+    # Keras History object stores metrics
+    acc = history.history.get('acc') or history.history.get('accuracy')
+    val_acc = history.history.get('val_acc') or history.history.get('val_accuracy')
     loss = history.history['loss']
     val_loss = history.history['val_loss']
-    epochs = range(1, len(loss) + 1)
+    epochs = range(1, len(acc) + 1)
     
-    plt.figure(figsize=(8, 6))
-    plt.plot(epochs, loss, 'bo', label='Training MAE')
-    plt.plot(epochs, val_loss, 'b', label='Validation MAE')
+    plt.figure(figsize=(12, 5))
+
+    # Accuracy Plot
+    plt.subplot(1, 2, 1)
+    plt.plot(epochs, acc, 'bo', label='Training acc')
+    plt.plot(epochs, val_acc, 'b', label='Validation acc')
+    plt.title(f'Training and validation accuracy ({model_name})')
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy')
+    plt.legend()
+
+    # Loss Plot
+    plt.subplot(1, 2, 2)
+    plt.plot(epochs, loss, 'bo', label='Training loss')
+    plt.plot(epochs, val_loss, 'b', label='Validation loss')
     plt.title(f'Training and validation loss ({model_name})')
     plt.xlabel('Epochs')
-    plt.ylabel('Mean Absolute Error (MAE)')
+    plt.ylabel('Loss')
     plt.legend()
-    plt.grid(True)
-    plt.savefig(f'{model_name.lower().replace(" ", "_")}_loss.png')
-    print(f"\nPerformance charts for {model_name} saved to {model_name.lower().replace(' ', '_')}_loss.png")
+    
+    plt.tight_layout()
+    plt.savefig(f'{model_name.lower().replace(" ", "_")}_performance.png')
+    plt.close() # Close plot to prevent display issues in some environments
+    print(f"\nPerformance charts for {model_name} saved to {model_name.lower().replace(' ', '_')}_performance.png")
 
 
-# --- 5. Model 1: GRU with Recurrent Dropout ---
+# ======================================================================
+# Classifier 1: SimpleRNN Model
+# Structure: Embedding -> SimpleRNN -> Dense
+# ======================================================================
 print("\n" + "="*70)
-print(f"Model 1: Single GRU Layer with Dropout (Epochs: {EPOCHS})")
+print("Building and training SimpleRNN Classifier...")
 
-model_dropout = Sequential()
-model_dropout.add(layers.GRU(GRU_UNITS,
-                             dropout=DROPOUT_RATE,
-                             recurrent_dropout=RECURRENT_DROPOUT_RATE,
-                             input_shape=(None, float_data.shape[-1])))
-model_dropout.add(layers.Dense(1))
+simplernn_model = Sequential()
+# 1. Embedding layer: Maps words (indices) to dense vectors
+simplernn_model.add(Embedding(MAX_FEATURES, EMBEDDING_DIM, input_length=MAX_LEN)) 
 
-model_dropout.compile(optimizer=RMSprop(), loss='mae')
+# 2. SimpleRNN layer: Processes the sequence. Output shape is (batch_size, RNN_UNITS)
+# Note: SimpleRNN struggles with long sequences due to vanishing gradient.
+simplernn_model.add(SimpleRNN(RNN_UNITS)) 
 
-print("\n--- Model 1 Summary (GRU + Recurrent Dropout) ---")
-model_dropout.summary()
+# 3. Output Dense layer: Sigmoid activation for binary classification (sentiment)
+simplernn_model.add(Dense(1, activation='sigmoid'))
 
-history_dropout = model_dropout.fit(
-    train_gen,
-    steps_per_epoch=500,
+simplernn_model.compile(optimizer=RMSprop(learning_rate=LEARNING_RATE), 
+                        loss='binary_crossentropy', 
+                        metrics=['acc'])
+
+print("\n--- SimpleRNN Model Summary ---")
+simplernn_model.summary()
+
+simplernn_history = simplernn_model.fit(
+    x_train, 
+    y_train,
     epochs=EPOCHS,
-    validation_data=val_gen,
-    validation_steps=val_steps
+    batch_size=BATCH_SIZE,
+    validation_split=0.2, # Use 20% of training data for validation
+    verbose=1
 )
 
-plot_history(history_dropout, "GRU with Recurrent Dropout")
+plot_history(simplernn_history, "SimpleRNN Classifier")
 
 
-# --- 6. Model 2: Bidirectional GRU ---
+# ======================================================================
+# Classifier 2: LSTM Model
+# Structure: Embedding -> LSTM -> Dense
+# ======================================================================
 print("\n" + "="*70)
-print(f"Model 2: Bidirectional GRU Layer (Epochs: {EPOCHS // 2})") 
+print("Building and training LSTM Classifier...")
 
-# Bidirectional models have higher capacity and often converge faster, 
-# but we'll use a standard epoch count for comparison.
-BIDIR_EPOCHS = EPOCHS // 2 # Use fewer epochs since Bidirectional layers train more parameters
+lstm_model = Sequential()
+# 1. Embedding layer
+lstm_model.add(Embedding(MAX_FEATURES, EMBEDDING_DIM, input_length=MAX_LEN)) 
 
-model_bidir = Sequential()
-# Bidirectional wrapper duplicates the GRU layer and runs one forward and one backward,
-# concatenating their outputs by default.
-model_bidir.add(layers.Bidirectional(
-    layers.GRU(GRU_UNITS),
-    input_shape=(None, float_data.shape[-1])
-))
-model_bidir.add(layers.Dense(1))
+# 2. LSTM layer: Uses gates (Forget, Input, Output) to better manage sequence state, 
+# overcoming the vanishing gradient problem inherent in SimpleRNN.
+lstm_model.add(LSTM(RNN_UNITS)) 
 
-model_bidir.compile(optimizer=RMSprop(), loss='mae')
+# 3. Output Dense layer
+lstm_model.add(Dense(1, activation='sigmoid'))
 
-print("\n--- Model 2 Summary (Bidirectional GRU) ---")
-model_bidir.summary()
+lstm_model.compile(optimizer=RMSprop(learning_rate=LEARNING_RATE), 
+                   loss='binary_crossentropy', 
+                   metrics=['acc'])
 
-history_bidir = model_bidir.fit(
-    train_gen,
-    steps_per_epoch=500,
-    epochs=BIDIR_EPOCHS,
-    validation_data=val_gen,
-    validation_steps=val_steps
+print("\n--- LSTM Model Summary ---")
+lstm_model.summary()
+
+lstm_history = lstm_model.fit(
+    x_train, 
+    y_train,
+    epochs=EPOCHS,
+    batch_size=BATCH_SIZE,
+    validation_split=0.2, # Use 20% of training data for validation
+    verbose=1
 )
 
-plot_history(history_bidir, "Bidirectional GRU")
+plot_history(lstm_history, "LSTM Classifier")
 
-print("\nAssignment complete: Two advanced RNN models have been implemented and trained.")
+print("\n--- Execution Complete ---")
+print("Two RNN-based classifiers (SimpleRNN and LSTM) have been trained and results plotted.")
+print("By comparing the validation accuracy charts of SimpleRNN and LSTM, you should observe that LSTM generally performs better in handling temporal dependencies.")
